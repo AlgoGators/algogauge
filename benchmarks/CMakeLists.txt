@@ -1,9 +1,19 @@
-add_executable(order_manager_benchmark
-    order_manager_benchmark.cpp
+# Function for adding a benchmark target
+function(add_benchmark NAME)
+    add_executable(${NAME} ${ARGN})
+
+    target_link_libraries(${NAME}
+        PRIVATE
+            trade_ngin
+            benchmark::benchmark
+            benchmark::benchmark_main
+    )
+endfunction()
+
+add_benchmark(base_strategy_benchmarks
+    base_strategy_benchmarks.cpp
 )
 
-target_link_libraries(order_manager_benchmark
-    PRIVATE
-        benchmark::benchmark
-        trade_ngin
+add_benchmark(trend_following_benchmarks
+    trend_following_benchmarks.cpp
 )
