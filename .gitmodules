@@ -1,3 +1,6 @@
 [submodule "tools/FlameGraph"]
 	path = tools/FlameGraph
 	url = https://github.com/brendangregg/FlameGraph
+[submodule "external/trade-ngin"]
+	path = external/trade-ngin
+	url = https://github.com/AlgoGators/trade-ngin.git
