@@ -10,8 +10,12 @@ if [ -z "$BIN" ]; then
     exit 1
 fi
 
-# Ensure sufficient permissions for perf, i.e. that the kernel.perf_event_paranoid setting is 0 or 1. Technically it could be -1, but that might be too permissive for some environments, so we only check for 0 and 1 here.
-if ! cat /proc/sys/kernel/perf_event_paranoid 2>/dev/null | grep -qE '^[01]$'; then
+# Ensure sufficient permissions for perf
+if ! cat /proc/sys/kernel/perf_event_paranoid 2>/dev/null | grep -q -E '0'; then
+    echo "Error: perf is not properly configured. Please run 'sudo sysctl -w kernel.perf_event_paranoid=1' or 'sudo sysctl -w kernel.perf_event_paranoid=0' to allow perf to record user-space events."
+    exit 1
+fi
+if ! cat /proc/sys/kernel/kptr_restrict 2>/dev/null | grep -q -E '0'; then
     echo "Error: perf is not properly configured. Please run 'sudo sysctl -w kernel.perf_event_paranoid=1' or 'sudo sysctl -w kernel.perf_event_paranoid=0' to allow perf to record user-space events."
     exit 1
 fi
@@ -29,7 +33,9 @@ echo "Results directory: $RESULT_DIR"
 ./$BIN \
     --benchmark_out=$RESULT_DIR/benchmark.json \
     --benchmark_out_format=json \
-    --benchmark_min_time=5 \
+    --benchmark_min_time=5s \
+    --benchmark_repetitions=30 \
+    --benchmark_report_aggregates_only=true \
     | tee $RESULT_DIR/benchmark.txt
 
 # perf recording
@@ -51,6 +57,8 @@ tools/FlameGraph/stackcollapse-perf.pl \
 tools/FlameGraph/flamegraph.pl \
     $RESULT_DIR/perf.folded \
     > $RESULT_DIR/flamegraph.svg
+
+# TODO python analysis of benchmark.json to extract more insights
 
 echo ""
 echo "Benchmark complete"

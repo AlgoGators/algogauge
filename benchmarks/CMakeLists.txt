@@ -13,6 +13,8 @@ function(add_benchmark NAME)
         -O3
         -g
         -fno-omit-frame-pointer
+        -march=native
+        -DNDEBUG
     )
 endfunction()
 
