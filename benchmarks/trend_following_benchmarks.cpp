@@ -8,18 +8,16 @@ BENCHMARK_F(TrendFollowingBenchmark, OnDataProcessing)
 (benchmark::State& state) {
     for (auto _ : state) {
         strategy->on_data(bars);
-
         benchmark::DoNotOptimize(strategy);
     }
 }
 
-BENCHMARK_F(TrendFollowingBenchmark, OnDataScaling)
+BENCHMARK_DEFINE_F(TrendFollowingBenchmark, OnDataScaling)
 (benchmark::State& state) {
     auto data = bench_utils::create_test_data("ES", state.range(0));
 
     for (auto _ : state) {
         strategy->on_data(data);
-
         benchmark::ClobberMemory();
     }
 }

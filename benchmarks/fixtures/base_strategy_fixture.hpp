@@ -3,6 +3,7 @@
 #include <benchmark/benchmark.h>
 
 #include "../mocks/mock_postgres_database.hpp"
+#include "trade_ngin/core/logger.hpp"
 #include "trade_ngin/core/state_manager.hpp"
 #include "trade_ngin/strategy/base_strategy.hpp"
 
@@ -10,6 +11,16 @@ class BaseStrategyBenchmark : public benchmark::Fixture {
    public:
     void SetUp(const ::benchmark::State&) override {
         trade_ngin::StateManager::reset_instance();
+        trade_ngin::Logger::reset_for_tests();
+
+        // Initialize logger
+        auto& logger = trade_ngin::Logger::instance();
+        trade_ngin::LoggerConfig logger_config;
+        logger_config.min_level = trade_ngin::LogLevel::DEBUG;
+        logger_config.destination = trade_ngin::LogDestination::CONSOLE;
+        logger_config.log_directory = "logs";
+        logger_config.filename_prefix = "benchmark";
+        logger.initialize(logger_config);
 
         db = std::make_shared<MockPostgresDatabase>();
 

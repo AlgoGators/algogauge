@@ -6,7 +6,13 @@ function(add_benchmark NAME)
         PRIVATE
             trade_ngin
             benchmark::benchmark
-            benchmark::benchmark_main
+    )
+
+    target_compile_options(${NAME}
+        PRIVATE
+        -O3
+        -g
+        -fno-omit-frame-pointer
     )
 endfunction()
 

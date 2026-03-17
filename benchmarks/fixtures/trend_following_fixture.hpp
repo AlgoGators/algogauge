@@ -12,6 +12,16 @@ class TrendFollowingBenchmark : public benchmark::Fixture {
     void SetUp(const ::benchmark::State&) override {
         trade_ngin::StateManager::reset_instance();
 
+        // Initialize logger
+        trade_ngin::Logger::reset_for_tests();
+        auto& logger = trade_ngin::Logger::instance();
+        trade_ngin::LoggerConfig logger_config;
+        logger_config.min_level = trade_ngin::LogLevel::DEBUG;
+        logger_config.destination = trade_ngin::LogDestination::CONSOLE;
+        logger_config.log_directory = "logs";
+        logger_config.filename_prefix = "benchmark";
+        logger.initialize(logger_config);
+
         db = std::make_shared<MockPostgresDatabase>();
 
         strategy_config.capital_allocation = 1000000.0;

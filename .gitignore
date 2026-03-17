@@ -42,4 +42,6 @@
 
 .cache/
 build/
+results/
+
 compile_commands.json
