@@ -11,7 +11,7 @@ find_package(GTest REQUIRED)
 find_package(benchmark REQUIRED)
 
 # trade-ngin
-# TODO necessary for trade-ngin, but should be fixed in the future
+# TODO necessary for trade-ngin, but should be changed in the future
 set(NLopt_DIR "/usr/lib/x86_64-linux-gnu/cmake/nlopt_cxx")
 find_package(NLopt REQUIRED)
 add_subdirectory(external/trade-ngin)
