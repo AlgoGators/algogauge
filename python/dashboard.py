@@ -6,21 +6,26 @@ import pandas as pd
 from dash import Dash, dcc, html
 import plotly.express as px
 
-# TODO extension to any arbitrary benchmark pattern, not just OnDataScaling
-
 # CLI argument handling
 if len(sys.argv) != 2:
-    print("Usage: python dashboard.py <benchmark.json>")
+    print("Usage: python dashboard.py <folder>")
     sys.exit(1)
 
-filename = sys.argv[1]
+folder = sys.argv[1]
 
-if not os.path.exists(filename):
-    print(f"Error: file '{filename}' not found")
+if not os.path.exists(folder) or not os.path.isdir(folder):
+    print(f"Error: folder '{folder}' not found or is not a directory")
+    sys.exit(1)
+
+json_file = os.path.join(folder, "benchmark.json")
+svg_file = os.path.join(folder, "flamegraph.svg")
+
+if not os.path.exists(json_file):
+    print(f"Error: '{json_file}' not found")
     sys.exit(1)
 
 # Load + parse benchmark.json
-with open(filename) as f:
+with open(json_file) as f:
     data = json.load(f)
 
 records = []
@@ -52,40 +57,56 @@ if "mean" in df_wide.columns:
 else:
     df_wide["time_per_element"] = None
 
-# Plotly figures
-fig_scaling = px.line(
-    df_wide,
-    x="size",
-    y="mean",
-    log_x=True,
-    log_y=True,
-    markers=True,
-    title="Scaling Behavior (log-log)",
-)
 
-fig_tpe = px.line(
-    df_wide, x="size", y="time_per_element", markers=True, title="Time per Element (ns)"
-)
+# Plotly figures with orange theme
+def make_fig(df, x, y, title):
+    fig = px.line(df, x=x, y=y, markers=True, title=title)
+    fig.update_traces(line_color="orange", marker_color="orange")
+    return fig
 
-fig_cv = px.line(
-    df_wide, x="size", y="cv", markers=True, title="Coefficient of Variation (%)"
-)
 
-fig_std = px.line(
-    df_wide, x="size", y="stddev", markers=True, title="Standard Deviation (ns)"
+fig_scaling = make_fig(df_wide, "size", "mean", "Scaling Behavior (log-log)")
+fig_tpe = make_fig(df_wide, "size", "time_per_element", "Time per Element (ns)")
+fig_cv = (
+    make_fig(df_wide, "size", "cv", "Coefficient of Variation (%)")
+    if "cv" in df_wide.columns
+    else None
+)
+fig_std = (
+    make_fig(df_wide, "size", "stddev", "Standard Deviation (ns)")
+    if "stddev" in df_wide.columns
+    else None
 )
 
 # Dash app
 app = Dash(__name__)
 
+graph_list = [dcc.Graph(figure=fig_scaling), dcc.Graph(figure=fig_tpe)]
+if fig_cv:
+    graph_list.append(dcc.Graph(figure=fig_cv))
+if fig_std:
+    graph_list.append(dcc.Graph(figure=fig_std))
+
+# Flamegraph iframe
+if os.path.exists(svg_file):
+    flamegraph_div = html.Div(
+        [
+            html.H2("Flamegraph", style={"color": "orange"}),
+            html.Iframe(
+                srcDoc=open(svg_file).read(),
+                style={"width": "100%", "height": "800px", "border": "none"},
+            ),
+        ]
+    )
+    graph_list.append(flamegraph_div)  # Gives error but still works
+
 app.layout = html.Div(
     [
-        html.H1(f"Benchmark Dashboard: {os.path.basename(filename)}"),
-        dcc.Graph(figure=fig_scaling),
-        dcc.Graph(figure=fig_tpe),
-        dcc.Graph(figure=fig_cv),
-        dcc.Graph(figure=fig_std),
-    ]
+        html.H1(
+            f"Benchmark Dashboard: {os.path.basename(folder)}",
+        ),
+        *graph_list,
+    ],
 )
 
 if __name__ == "__main__":
