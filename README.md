@@ -56,3 +56,4 @@ algogauge/
 | Dashboard usage and panels | [docs/dashboard.md](docs/dashboard.md) |
 | Available benchmarks and fixture details | [docs/benchmarks.md](docs/benchmarks.md) |
 | Pipeline flags, input sizes, and strategy parameters | [docs/configuration.md](docs/configuration.md) |
+| Roadmap – CI integration and arbitrary benchmark support | [docs/roadmap.md](docs/roadmap.md) |
