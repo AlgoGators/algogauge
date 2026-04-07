@@ -1,6 +1,7 @@
 #include <benchmark/benchmark.h>
 
 #include "fixtures/base_strategy_fixture.hpp"
+#include "utils/test_data_generator.hpp"
 
 using namespace trade_ngin;
 
@@ -15,20 +16,18 @@ BENCHMARK_F(BaseStrategyBenchmark, PauseStrategy)
     }
 }
 
-BENCHMARK_F(BaseStrategyBenchmark, ProcessExecution)
+BENCHMARK_DEFINE_F(BaseStrategyBenchmark, OnDataScaling)
 (benchmark::State& state) {
-    ExecutionReport report;
-
-    report.symbol = "ES";
-    report.side = Side::BUY;
-    report.filled_quantity = 10;
-    report.fill_price = 5000;
+    auto data = bench_utils::create_test_data("ES", state.range(0));
 
     for (auto _ : state) {
-        strategy->on_execution(report);
-
+        strategy->on_data(data);
         benchmark::ClobberMemory();
     }
 }
+
+BENCHMARK_REGISTER_F(BaseStrategyBenchmark, OnDataScaling)
+    ->RangeMultiplier(2)
+    ->Range(64, 8192);
 
 BENCHMARK_MAIN();

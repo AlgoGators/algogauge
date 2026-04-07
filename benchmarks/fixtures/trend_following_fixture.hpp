@@ -3,7 +3,7 @@
 #include <benchmark/benchmark.h>
 
 #include "../mocks/mock_postgres_database.hpp"
-#include "../utils/test_data_generator.hpp"
+#include "trade_ngin/core/logger.hpp"
 #include "trade_ngin/core/state_manager.hpp"
 #include "trade_ngin/strategy/trend_following.hpp"
 
@@ -11,9 +11,9 @@ class TrendFollowingBenchmark : public benchmark::Fixture {
    public:
     void SetUp(const ::benchmark::State&) override {
         trade_ngin::StateManager::reset_instance();
+        trade_ngin::Logger::reset_for_tests();
 
         // Initialize logger
-        trade_ngin::Logger::reset_for_tests();
         auto& logger = trade_ngin::Logger::instance();
         trade_ngin::LoggerConfig logger_config;
         logger_config.min_level = trade_ngin::LogLevel::DEBUG;
@@ -22,8 +22,10 @@ class TrendFollowingBenchmark : public benchmark::Fixture {
         logger_config.filename_prefix = "benchmark";
         logger.initialize(logger_config);
 
+        // Initialize mock database
         db = std::make_shared<MockPostgresDatabase>();
 
+        // Configs
         strategy_config.capital_allocation = 1000000.0;
         strategy_config.max_leverage = 4.0;
         strategy_config.asset_classes = {trade_ngin::AssetClass::FUTURES};
@@ -40,19 +42,25 @@ class TrendFollowingBenchmark : public benchmark::Fixture {
         strategy = std::make_unique<trade_ngin::TrendFollowingStrategy>(
             "trend_benchmark", strategy_config, trend_config, db);
 
-        strategy->initialize();
+        // Limits
+        trade_ngin::RiskLimits limits;
+        limits.max_leverage = 4.0;
+        limits.max_drawdown = 0.25;
+        limits.max_position_size = 100000;
+        limits.max_notional_value = 1000000.0;
 
-        bars = bench_utils::create_test_data("ES", 500);
+        strategy->update_risk_limits(limits);
+
+        strategy->initialize();
     }
 
     void TearDown(const ::benchmark::State&) override {
+        strategy->stop();
         strategy.reset();
         db.reset();
     }
 
    protected:
-    std::vector<trade_ngin::Bar> bars;
-
     std::shared_ptr<MockPostgresDatabase> db;
 
     trade_ngin::StrategyConfig strategy_config;

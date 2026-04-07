@@ -22,8 +22,10 @@ class BaseStrategyBenchmark : public benchmark::Fixture {
         logger_config.filename_prefix = "benchmark";
         logger.initialize(logger_config);
 
+        // Initialize mock database
         db = std::make_shared<MockPostgresDatabase>();
 
+        // Configs
         trade_ngin::StrategyConfig config;
         config.capital_allocation = 1000000.0;
         config.max_leverage = 4.0;
@@ -33,6 +35,7 @@ class BaseStrategyBenchmark : public benchmark::Fixture {
 
         strategy->initialize();
 
+        // Limits
         trade_ngin::RiskLimits limits;
         limits.max_leverage = 4.0;
         limits.max_drawdown = 0.25;

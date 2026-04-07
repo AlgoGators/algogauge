@@ -1,16 +1,9 @@
 #include <benchmark/benchmark.h>
 
 #include "fixtures/trend_following_fixture.hpp"
+#include "utils/test_data_generator.hpp"
 
 using namespace trade_ngin;
-
-BENCHMARK_F(TrendFollowingBenchmark, OnDataProcessing)
-(benchmark::State& state) {
-    for (auto _ : state) {
-        strategy->on_data(bars);
-        benchmark::DoNotOptimize(strategy);
-    }
-}
 
 BENCHMARK_DEFINE_F(TrendFollowingBenchmark, OnDataScaling)
 (benchmark::State& state) {
@@ -22,6 +15,8 @@ BENCHMARK_DEFINE_F(TrendFollowingBenchmark, OnDataScaling)
     }
 }
 
-BENCHMARK_REGISTER_F(TrendFollowingBenchmark, OnDataScaling)->Range(64, 8192);
+BENCHMARK_REGISTER_F(TrendFollowingBenchmark, OnDataScaling)
+    ->RangeMultiplier(2)
+    ->Range(64, 8192);
 
 BENCHMARK_MAIN();
