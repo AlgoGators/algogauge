@@ -68,7 +68,7 @@ def main():
     print(f"Running benchmark: {name}")
     print(f"Results directory: {result_dir}")
 
-    # --- Google Benchmark ---
+    # Google Benchmark
     run_command(
         [
             str(bin_path),
@@ -81,7 +81,7 @@ def main():
         stdout_file=result_dir / "benchmark.txt",
     )
 
-    # --- perf record ---
+    # perf record
     run_command(
         [
             "perf",
@@ -97,7 +97,7 @@ def main():
         ]
     )
 
-    # --- perf script ---
+    # perf script
     run_command(
         [
             "perf",
@@ -108,7 +108,7 @@ def main():
         stdout_file=result_dir / "perf.script",
     )
 
-    # --- stack collapse ---
+    # stack collapse
     run_command(
         [
             "tools/FlameGraph/stackcollapse-perf.pl",
@@ -117,7 +117,7 @@ def main():
         stdout_file=result_dir / "perf.folded",
     )
 
-    # --- flamegraph ---
+    # flamegraph
     run_command(
         [
             "tools/FlameGraph/flamegraph.pl",
