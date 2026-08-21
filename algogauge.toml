@@ -1,0 +1,17 @@
+# AlgoGauge benchmark manifest. See docs/superpowers/specs/2026-08-21-tier1-benchmarking-design.md §4.
+
+[defaults]
+repetitions = 20
+min_time = "2s"
+perf = true
+regression_threshold_pct = 10
+
+[[benchmark]]
+name   = "base_strategy"
+kind   = "gbench"
+binary = "build/benchmarks/base_strategy_benchmarks"
+
+[[benchmark]]
+name   = "trend_following"
+kind   = "gbench"
+binary = "build/benchmarks/trend_following_benchmarks"
