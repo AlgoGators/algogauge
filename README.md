@@ -15,33 +15,47 @@ AlgoGauge is a benchmarking and profiling suite for [trade-ngin](https://github.
 git clone --recurse-submodules https://github.com/AlgoGators/algogauge.git
 cd algogauge
 
+# WSL2 users: install the full toolchain in one idempotent step (needs sudo)
+wsl -d Ubuntu -e sudo bash scripts/setup_wsl.sh
+
 # 2. Install Python dependencies
-uv sync
+uv sync --extra dev
 
 # 3. Build benchmark binaries
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 
-# 4. Run the benchmark pipeline (from repo root)
-uv run python/benchmark_pipeline.py build/benchmarks/base_strategy_benchmarks
+# 4. Run every suite declared in algogauge.toml (add --skip-perf if perf is unavailable)
+uv run algogauge run
 
-# 5. View results in the dashboard
-uv run python/dashboard.py results/base_strategy_benchmarks/<run-id>/
+# 5. Compare the last two runs of a suite (exits 1 on a >10% median regression)
+uv run algogauge compare base_strategy
+
+# 6. Or do it all from Jupyter
+uv run jupyter lab notebooks/
 ```
 
-> **Note:** `perf` requires relaxed kernel settings. See [docs/prerequisites.md](docs/prerequisites.md) for details.
+> **Note:** `perf` requires relaxed kernel settings. See [docs/prerequisites.md](docs/prerequisites.md) for details. If `perf` isn't available, `--skip-perf` still produces full timing results — only flamegraphs are skipped.
 
 ## Repository Structure
 
 ```
 algogauge/
-├── benchmarks/          # C++ benchmark sources, fixtures, mocks, and utilities
-├── docs/                # Detailed documentation
-├── external/trade-ngin/ # Git submodule – trading engine library
+├── algogauge.toml        # Manifest: every benchmark suite, binary/script, params
+├── benchmarks/           # C++ benchmark sources, fixtures, mocks, and utilities
+├── docs/                 # Detailed documentation
+├── external/trade-ngin/  # Git submodule – trading engine library
+├── history/              # Tracked: one JSONL file per suite, one line per run
+├── notebooks/            # Reproducible entry points (setup, run-all, per-metric, dashboard)
 ├── python/
-│   ├── benchmark_pipeline.py   # Orchestrates benchmark + perf + flamegraph
-│   └── dashboard.py            # Plotly Dash result viewer
-├── tools/FlameGraph/    # Git submodule – flamegraph generation scripts
+│   ├── algogauge/               # manifest, runner, history, compare, machine, cli
+│   ├── benchmark_pipeline.py    # Back-compat shim over algogauge.runner
+│   └── dashboard.py             # Plotly Dash result viewer
+├── results/              # Gitignored: raw benchmark.json, perf.data, flamegraph.svg per run
+├── scripts/
+│   ├── setup_wsl.sh          # Idempotent WSL2 Ubuntu toolchain install
+│   └── build_notebooks.py    # Regenerates notebooks/*.ipynb deterministically
+├── tools/FlameGraph/     # Git submodule – flamegraph generation scripts
 ├── CMakeLists.txt
 └── pyproject.toml
 ```
