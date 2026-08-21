@@ -37,6 +37,18 @@ uv run jupyter lab notebooks/
 
 > **Note:** `perf` requires relaxed kernel settings. See [docs/prerequisites.md](docs/prerequisites.md) for details. If `perf` isn't available, `--skip-perf` still produces full timing results — only flamegraphs are skipped.
 
+## Tier-1 performance metrics
+
+Three suites answer three specific, previously-unmeasured questions about trade-ngin:
+
+| Metric | Suite | What it measures |
+|--------|-------|-------------------|
+| Tick-to-trade latency | `tick_to_trade` | Wall-clock from a new bar to `PortfolioManager` emitting an execution |
+| Data-ingestion throughput | `ingestion_throughput` | Arrow→Bar conversion rate and `MarketDataBus::publish()` fan-out/contention |
+| Backtest speedup | `backtest_speedup` | Wall-clock speedup running independent backtests serially vs. in parallel |
+
+Each one states plainly what it does and doesn't cover (in-process, mock database, synthetic data — see the honesty notes in [docs/benchmarks.md](docs/benchmarks.md)). Full rationale and validity rules: [ADR 0001](docs/adr/0001-tier1-performance-benchmarking.md). Per-metric deep-dive notebooks: `notebooks/02_tick_to_trade.ipynb`, `03_ingestion_throughput.ipynb`, `04_backtest_speedup.ipynb`.
+
 ## Repository Structure
 
 ```
@@ -71,3 +83,4 @@ algogauge/
 | Available benchmarks and fixture details | [docs/benchmarks.md](docs/benchmarks.md) |
 | Pipeline flags, input sizes, and strategy parameters | [docs/configuration.md](docs/configuration.md) |
 | Roadmap – CI integration and arbitrary benchmark support | [docs/roadmap.md](docs/roadmap.md) |
+| ADR 0001 – Tier-1 performance benchmarking rationale, metric definitions, validity rules | [docs/adr/0001-tier1-performance-benchmarking.md](docs/adr/0001-tier1-performance-benchmarking.md) |

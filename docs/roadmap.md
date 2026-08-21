@@ -2,6 +2,8 @@
 
 This document outlines planned improvements in two areas: integrating AlgoGauge into a continuous integration (CI) pipeline, and extending the analysis pipeline to support arbitrary Google Benchmark binaries beyond the strategies currently hard-wired in the repository.
 
+> **Update (2026-08-21):** The Tier-1 performance benchmarking work ([ADR 0001](adr/0001-tier1-performance-benchmarking.md)) delivered most of "Arbitrary Benchmark Support" below as a byproduct — see the status table under [Priority order](#priority-order).
+
 ---
 
 ## CI Integration
@@ -106,11 +108,12 @@ Add an `--export` flag to `benchmark_pipeline.py` that writes a summary CSV or M
 
 ## Priority order
 
-| Item | Value | Complexity |
-|------|-------|------------|
-| `--skip-perf` flag | High – unblocks CI | Low |
-| Baseline comparison script | High – core CI feature | Medium |
-| Schema-agnostic dashboard | Medium – quality-of-life | Medium |
-| `algogauge.toml` manifest | Medium – usability | Medium |
-| Multi-binary dashboard | Low – nice-to-have | High |
-| Pluggable export formats | Low – nice-to-have | Low |
+| Item | Value | Complexity | Status |
+|------|-------|------------|--------|
+| `--skip-perf` flag | High – unblocks CI | Low | **Done** — `algogauge run --skip-perf`; perf-permission failure also now warns and skips automatically instead of aborting |
+| Baseline comparison script | High – core CI feature | Medium | **Done** — `algogauge compare <suite>` / `python/algogauge/compare.py`, used locally today; wiring it into an actual CI workflow (below) is still open |
+| Schema-agnostic dashboard | Medium – quality-of-life | Medium | **Done** — rewritten dashboard auto-discovers suites/benchmarks from `history/`, no hard-coded naming pattern |
+| `algogauge.toml` manifest | Medium – usability | Medium | **Done** — every suite (including the three Tier-1 suites) is declared here |
+| Multi-binary dashboard | Low – nice-to-have | High | **Done** — Suites page shows every suite in one dashboard; Trends/Compare/Runs pages are multi-run as well |
+| Pluggable export formats | Low – nice-to-have | Low | Not started |
+| `.github/workflows/benchmark.yml` CI workflow | High – unblocks automatic regression detection | Medium | Not started — everything it needs (`--skip-perf`, `compare`, manifest) now exists; this is the remaining piece |
