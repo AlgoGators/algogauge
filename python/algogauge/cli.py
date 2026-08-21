@@ -49,6 +49,16 @@ def _cmd_run(a) -> int:
     return 1 if failed else 0
 
 
+def _cmd_dashboard(a) -> int:
+    from .dashboard.app import (
+        build_app,
+    )  # imported lazily: dash is an optional-ish, heavier dependency
+
+    app = build_app(a.history_dir, a.results_dir)
+    app.run(debug=a.debug, host=a.host, port=a.port)
+    return 0
+
+
 def _cmd_compare(a) -> int:
     recs = history.load(a.history_dir, a.suite)
     runs = sorted({(r.ts, r.run_id) for r in recs if r.valid})
@@ -93,6 +103,14 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--current", default="latest")
     c.add_argument("--threshold", type=float, default=10.0)
     c.set_defaults(fn=_cmd_compare)
+
+    d = sub.add_parser("dashboard", help="launch the results dashboard")
+    d.add_argument("--history-dir", type=Path, default=Path.cwd() / "history")
+    d.add_argument("--results-dir", type=Path, default=Path.cwd() / "results")
+    d.add_argument("--host", default="127.0.0.1")
+    d.add_argument("--port", type=int, default=8050)
+    d.add_argument("--debug", action="store_true")
+    d.set_defaults(fn=_cmd_dashboard)
 
     a = p.parse_args(argv)
     return a.fn(a)
