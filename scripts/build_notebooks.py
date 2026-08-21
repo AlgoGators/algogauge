@@ -110,15 +110,91 @@ for name, res in results.items():
     )
 
 
+def ingestion_throughput_nb():
+    return _nb(
+        [
+            nbf.v4.new_markdown_cell(
+                "# 03 · Data-ingestion throughput\n\n"
+                "Runs only the `ingestion_throughput` suite: Arrow-table-to-Bar conversion "
+                "(Stage A), single-threaded `MarketDataBus::publish()` fan-out (Stage B), and "
+                "concurrent-publisher contention (Stage C). Synthetic in-memory data only -- "
+                "no socket or disk I/O. See "
+                "docs/superpowers/specs/2026-08-21-tier1-benchmarking-design.md section 3.2."
+            ),
+            nbf.v4.new_code_cell(BOOT),
+            nbf.v4.new_code_cell(
+                """from algogauge import manifest, runner, cli
+m = manifest.load(ROOT / "algogauge.toml")
+suite = m.get("ingestion_throughput")
+res = runner.run_suite(suite, m.defaults, ROOT, skip_perf=False)
+print(f"run {res.run_id}, perf={'on' if res.perf_ran else 'off'}")"""
+            ),
+            nbf.v4.new_markdown_cell("## Results"),
+            nbf.v4.new_code_cell(
+                """from IPython.display import Markdown, display
+display(Markdown(cli.summary_markdown(res.records)))"""
+            ),
+            nbf.v4.new_markdown_cell(
+                "## Stage A: conversion throughput vs. table size\n\n"
+                "Rows/second implied by median latency, one point per `rows` variant."
+            ),
+            nbf.v4.new_code_cell(
+                """import pandas as pd
+import plotly.express as px
+
+conv = pd.DataFrame([
+    {"rows": int(r.param), "median_us": r.median, "rows_per_sec": r.counters.get("items_per_second")}
+    for r in res.records
+    if r.family == "ArrowToBars" and r.param is not None
+]).sort_values("rows")
+display(conv)
+if not conv.empty:
+    px.line(conv, x="rows", y="median_us", markers=True, log_x=True, log_y=True,
+           title="Arrow-to-Bar conversion latency vs. table size").show()"""
+            ),
+            nbf.v4.new_markdown_cell(
+                "## Stage C: contention -- latency vs. concurrent publisher threads\n\n"
+                "Rising median latency as `threads` increases is the mutex contention "
+                "in `MarketDataBus::publish()` becoming visible."
+            ),
+            nbf.v4.new_code_cell(
+                """cont = pd.DataFrame([
+    {"threads": int(r.param), "median_us": r.median, "p95_us": r.p95}
+    for r in res.records
+    if r.family == "PublishContended" and r.param is not None
+]).sort_values("threads")
+display(cont)
+if not cont.empty:
+    px.line(cont.melt(id_vars="threads", value_vars=["median_us", "p95_us"]),
+           x="threads", y="value", color="variable", markers=True,
+           title="MarketDataBus::publish() contention vs. thread count").show()"""
+            ),
+            nbf.v4.new_markdown_cell("## Flamegraph (if perf ran)"),
+            nbf.v4.new_code_cell(
+                """flamegraph = res.result_dir / "flamegraph.svg"
+if flamegraph.exists():
+    from IPython.display import SVG, display as _display
+    _display(SVG(filename=str(flamegraph)))
+else:
+    print("no flamegraph for this run (perf was skipped or unavailable)")"""
+            ),
+        ]
+    )
+
+
+NOTEBOOKS = (
+    ("00_setup_wsl.ipynb", setup_nb),
+    ("01_run_all_benchmarks.ipynb", run_all_nb),
+    ("03_ingestion_throughput.ipynb", ingestion_throughput_nb),
+)
+
+
 def build(out_dir: Path) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     out = []
-    for name, nb in (
-        ("00_setup_wsl.ipynb", setup_nb()),
-        ("01_run_all_benchmarks.ipynb", run_all_nb()),
-    ):
+    for name, make_nb in NOTEBOOKS:
         p = out_dir / name
-        nbf.write(nb, str(p))
+        nbf.write(make_nb(), str(p))
         out.append(p)
     return out
 

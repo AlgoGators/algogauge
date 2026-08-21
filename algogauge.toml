@@ -15,3 +15,8 @@ binary = "build/benchmarks/base_strategy_benchmarks"
 name   = "trend_following"
 kind   = "gbench"
 binary = "build/benchmarks/trend_following_benchmarks"
+
+[[benchmark]]
+name   = "ingestion_throughput"
+kind   = "gbench"
+binary = "build/benchmarks/ingestion_throughput_benchmarks"
