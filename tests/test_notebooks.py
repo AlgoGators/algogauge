@@ -23,6 +23,7 @@ def test_build_notebooks_roundtrip(tmp_path):
         "01_run_all_benchmarks.ipynb",
         "02_tick_to_trade.ipynb",
         "03_ingestion_throughput.ipynb",
+        "04_backtest_speedup.ipynb",
     ]
     for p in paths:
         nb = nbformat.read(p, as_version=4)

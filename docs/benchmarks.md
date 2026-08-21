@@ -79,6 +79,25 @@ Each `Publish`/`PublishContended` run fails loudly via `state.SkipWithError(...)
 
 ---
 
+## `backtest_speedup` (script suite)
+
+Driver: `build/benchmarks/bt_bench_runner` (plain executable, not Google Benchmark) · Harness: `python/algogauge/backtest_parallel.py`
+
+Tier-1 metric (see `docs/superpowers/specs/2026-08-21-tier1-benchmarking-design.md` §3.3): how much faster a large simulation runs when parallelized vs. serial. `bt_bench_runner --symbols N --years Y --seed S` runs one full multi-year, multi-symbol synthetic backtest through `PortfolioManager` + `TrendFollowingStrategy` (the same decision path as `tick_to_trade_benchmarks`, run day-by-day for the whole history) and prints wall-clock time plus a result checksum as one line of JSON.
+
+`backtest_parallel.py` runs 8 such jobs (different seeds, default) serially, then via a `ProcessPoolExecutor` at 1/2/4/8/16 workers, and reports:
+
+| Benchmark | Description |
+|-----------|-------------|
+| `BacktestSpeedup/1` | Wall-clock, speedup, and efficiency at 1 worker |
+| `BacktestSpeedup/2`, `/4`, `/8`, `/16` | Same, at increasing worker counts |
+
+Each worker-count's results are checked against the serial run's checksums for the same seeds — a **correctness guard**, not just a timing measurement: a mismatch means parallel execution changed the result, and the harness fails loudly instead of reporting a speedup number for a broken run.
+
+**Honesty notes:** trade-ngin's engine is single-threaded (no `std::thread`/`std::async`/OpenMP anywhere in `src/` or `apps/`). This measures speedup across *independent* backtests (parameter sweeps, walk-forward folds, Monte-Carlo seeds) run in separate OS processes — not multi-threading inside a single backtest. `bt_bench_runner` is built directly on `PortfolioManager::process_market_data()` rather than `BacktestCoordinator`, reusing the same strategy/portfolio wiring as `tick_to_trade_benchmarks` rather than introducing `BacktestCoordinator`'s `InstrumentRegistry`/contract-roll dependencies into this harness.
+
+---
+
 ## Test data
 
 Both fixtures use `bench_utils::create_test_data()` (`benchmarks/utils/test_data_generator.hpp`) to generate synthetic `Bar` data:
