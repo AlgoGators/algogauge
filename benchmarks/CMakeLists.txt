@@ -25,3 +25,7 @@ add_benchmark(base_strategy_benchmarks
 add_benchmark(trend_following_benchmarks
     trend_following_benchmarks.cpp
 )
+
+add_benchmark(tick_to_trade_benchmarks
+    tick_to_trade_benchmarks.cpp
+)
