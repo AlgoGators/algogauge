@@ -110,15 +110,73 @@ for name, res in results.items():
     )
 
 
+def backtest_speedup_nb():
+    return _nb(
+        [
+            nbf.v4.new_markdown_cell(
+                "# 04 · Backtest speedup\n\n"
+                "Runs `backtest_parallel.py`: 8 independent synthetic backtests "
+                "(50 symbols x 10 years each, by default) run serially, then "
+                "across process pools of 1/2/4/8/16 workers. Each parallel run's "
+                "checksum is verified against the serial run for the same seed "
+                "-- a correctness guard, not just a timing measurement.\n\n"
+                "**trade-ngin's engine is single-threaded** (no std::thread/std::async/OpenMP "
+                "anywhere in src/ or apps/), so this measures speedup across *independent* "
+                "backtests -- parameter sweeps, walk-forward folds, Monte-Carlo seeds -- "
+                "not multi-threading inside one backtest. See "
+                "docs/superpowers/specs/2026-08-21-tier1-benchmarking-design.md section 3.3.\n\n"
+                "**This can take a while** at the default size -- lower `--symbols`/`--years`/`--jobs` "
+                "in the manifest's `backtest_speedup` entry for a quick check."
+            ),
+            nbf.v4.new_code_cell(BOOT),
+            nbf.v4.new_code_cell(
+                """from algogauge import manifest, runner, cli
+m = manifest.load(ROOT / "algogauge.toml")
+suite = m.get("backtest_speedup")
+res = runner.run_suite(suite, m.defaults, ROOT, skip_perf=True)
+print(f"run {res.run_id}")"""
+            ),
+            nbf.v4.new_markdown_cell("## Results by worker count"),
+            nbf.v4.new_code_cell(
+                """from IPython.display import Markdown, display
+display(Markdown(cli.summary_markdown(res.records)))"""
+            ),
+            nbf.v4.new_markdown_cell(
+                "## Speedup and parallel efficiency vs. worker count\n\n"
+                "Efficiency = speedup / workers. A flat line near 1.0 means near-perfect "
+                "scaling; a declining line shows where added workers stop paying off."
+            ),
+            nbf.v4.new_code_cell(
+                """import pandas as pd
+import plotly.express as px
+
+df = pd.DataFrame([
+    {"workers": int(r.param), "speedup": r.counters.get("speedup"), "efficiency": r.counters.get("efficiency")}
+    for r in res.records
+    if r.param is not None
+]).sort_values("workers")
+display(df)
+px.line(df.melt(id_vars="workers", value_vars=["speedup", "efficiency"]),
+       x="workers", y="value", color="variable", markers=True,
+       title="Backtest speedup and parallel efficiency vs. worker count").show()"""
+            ),
+        ]
+    )
+
+
+NOTEBOOKS = (
+    ("00_setup_wsl.ipynb", setup_nb),
+    ("01_run_all_benchmarks.ipynb", run_all_nb),
+    ("04_backtest_speedup.ipynb", backtest_speedup_nb),
+)
+
+
 def build(out_dir: Path) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     out = []
-    for name, nb in (
-        ("00_setup_wsl.ipynb", setup_nb()),
-        ("01_run_all_benchmarks.ipynb", run_all_nb()),
-    ):
+    for name, make_nb in NOTEBOOKS:
         p = out_dir / name
-        nbf.write(nb, str(p))
+        nbf.write(make_nb(), str(p))
         out.append(p)
     return out
 

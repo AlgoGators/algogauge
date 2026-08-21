@@ -15,3 +15,15 @@ binary = "build/benchmarks/base_strategy_benchmarks"
 name   = "trend_following"
 kind   = "gbench"
 binary = "build/benchmarks/trend_following_benchmarks"
+
+[[benchmark]]
+name   = "backtest_speedup"
+kind   = "script"
+script = "python/algogauge/backtest_parallel.py"
+# backtest_parallel.py runs its own serial-vs-parallel sweep internally (one
+# real backtest run per (job, worker-count) combination) and writes one
+# result per worker count -- repeating that whole sweep via the manifest's
+# `repetitions` default would multiply an already-expensive suite for no
+# benefit, so `perf` is off and repetitions is not applicable here.
+args   = ["--symbols", "50", "--years", "10", "--jobs", "8", "--workers", "1,2,4,8,16"]
+perf   = false
