@@ -110,15 +110,78 @@ for name, res in results.items():
     )
 
 
+def tick_to_trade_nb():
+    return _nb(
+        [
+            nbf.v4.new_markdown_cell(
+                "# 02 · Tick-to-trade latency\n\n"
+                "Runs only the `tick_to_trade` suite: one new bar in, "
+                "`PortfolioManager::process_market_data()` → `get_recent_executions()` timed. "
+                "In-process, mock database, mock broker -- this is engine decision latency, "
+                "not wire latency to a real broker. See "
+                "docs/superpowers/specs/2026-08-21-tier1-benchmarking-design.md section 3.1."
+            ),
+            nbf.v4.new_code_cell(BOOT),
+            nbf.v4.new_code_cell(
+                """from algogauge import manifest, runner, cli
+m = manifest.load(ROOT / "algogauge.toml")
+suite = m.get("tick_to_trade")
+res = runner.run_suite(suite, m.defaults, ROOT, skip_perf=False)
+print(f"run {res.run_id}, perf={'on' if res.perf_ran else 'off'}")"""
+            ),
+            nbf.v4.new_markdown_cell("## Results by symbol-universe size"),
+            nbf.v4.new_code_cell(
+                """from IPython.display import Markdown, display
+display(Markdown(cli.summary_markdown(res.records)))"""
+            ),
+            nbf.v4.new_markdown_cell(
+                "## Latency vs. universe size\n\n"
+                "Median and p95 microseconds per tick, one point per `symbols` variant "
+                "(1 / 8 / 32 / 128), showing how decision latency scales with the size of "
+                "the traded universe."
+            ),
+            nbf.v4.new_code_cell(
+                """import pandas as pd
+import plotly.express as px
+
+rows = [
+    {"symbols": int(r.param), "median_us": r.median, "p95_us": r.p95, "executions_per_tick": r.counters.get("executions_per_tick")}
+    for r in res.records
+    if r.param is not None
+]
+df = pd.DataFrame(rows).sort_values("symbols")
+display(df)
+fig = px.line(df.melt(id_vars="symbols", value_vars=["median_us", "p95_us"]),
+             x="symbols", y="value", color="variable", markers=True,
+             title="Tick-to-trade latency vs. symbol-universe size", log_x=True)
+fig.show()"""
+            ),
+            nbf.v4.new_markdown_cell("## Flamegraph (if perf ran)"),
+            nbf.v4.new_code_cell(
+                """flamegraph = res.result_dir / "flamegraph.svg"
+if flamegraph.exists():
+    from IPython.display import SVG, display as _display
+    _display(SVG(filename=str(flamegraph)))
+else:
+    print("no flamegraph for this run (perf was skipped or unavailable)")"""
+            ),
+        ]
+    )
+
+
+NOTEBOOKS = (
+    ("00_setup_wsl.ipynb", setup_nb),
+    ("01_run_all_benchmarks.ipynb", run_all_nb),
+    ("02_tick_to_trade.ipynb", tick_to_trade_nb),
+)
+
+
 def build(out_dir: Path) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     out = []
-    for name, nb in (
-        ("00_setup_wsl.ipynb", setup_nb()),
-        ("01_run_all_benchmarks.ipynb", run_all_nb()),
-    ):
+    for name, make_nb in NOTEBOOKS:
         p = out_dir / name
-        nbf.write(nb, str(p))
+        nbf.write(make_nb(), str(p))
         out.append(p)
     return out
 
