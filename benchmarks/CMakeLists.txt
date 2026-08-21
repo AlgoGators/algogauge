@@ -29,3 +29,9 @@ add_benchmark(trend_following_benchmarks
 add_benchmark(tick_to_trade_benchmarks
     tick_to_trade_benchmarks.cpp
 )
+
+add_benchmark(ingestion_throughput_benchmarks
+    ingestion_throughput_benchmarks.cpp
+)
+find_package(Threads REQUIRED)
+target_link_libraries(ingestion_throughput_benchmarks PRIVATE Threads::Threads)
