@@ -15,3 +15,8 @@ binary = "build/benchmarks/base_strategy_benchmarks"
 name   = "trend_following"
 kind   = "gbench"
 binary = "build/benchmarks/trend_following_benchmarks"
+
+[[benchmark]]
+name   = "tick_to_trade"
+kind   = "gbench"
+binary = "build/benchmarks/tick_to_trade_benchmarks"
