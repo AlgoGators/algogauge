@@ -110,15 +110,44 @@ for name, res in results.items():
     )
 
 
+def dashboard_nb():
+    return _nb(
+        [
+            nbf.v4.new_markdown_cell(
+                "# 05 · Dashboard\n\n"
+                "Starts the AlgoGauge dashboard in-process and prints the URL to open. "
+                "Reads every run from `history/` (and flamegraphs from `results/`) -- run "
+                "notebook 01 (or any of 02/03/04) at least once first so there's data to show.\n\n"
+                "Pages: **Overview** (the three Tier-1 headline numbers), **Suites** "
+                "(per-suite table + scaling plots + flamegraph), **Trends** (median over time), "
+                "**Compare** (latest vs. previous valid run, regressions highlighted), **Runs** "
+                "(every run, validity, machine, git SHA)."
+            ),
+            nbf.v4.new_code_cell(BOOT),
+            nbf.v4.new_code_cell(
+                """from algogauge.dashboard.app import build_app
+
+app = build_app(ROOT / "history", ROOT / "results")
+app.run(debug=False, port=8050)
+# Open http://127.0.0.1:8050 -- this cell blocks while the server runs; interrupt the kernel to stop it."""
+            ),
+        ]
+    )
+
+
+NOTEBOOKS = (
+    ("00_setup_wsl.ipynb", setup_nb),
+    ("01_run_all_benchmarks.ipynb", run_all_nb),
+    ("05_dashboard.ipynb", dashboard_nb),
+)
+
+
 def build(out_dir: Path) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     out = []
-    for name, nb in (
-        ("00_setup_wsl.ipynb", setup_nb()),
-        ("01_run_all_benchmarks.ipynb", run_all_nb()),
-    ):
+    for name, make_nb in NOTEBOOKS:
         p = out_dir / name
-        nbf.write(nb, str(p))
+        nbf.write(make_nb(), str(p))
         out.append(p)
     return out
 
