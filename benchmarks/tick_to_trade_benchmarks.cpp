@@ -87,12 +87,16 @@ BENCHMARK_DEFINE_F(TickToTradeBenchmark, ProcessTick)
         benchmark::Counter(static_cast<double>(total_executions), benchmark::Counter::kAvgIterations);
 }
 
+// Deliberately no ->ArgNames() here: algogauge/gbench.py splits a benchmark's
+// name on the first "/" into (family, param) and expects `param` to be a bare
+// number it can int()/plot directly (see docs/configuration.md). ArgNames
+// would produce "ProcessTick/symbols:8" instead of "ProcessTick/8" and break
+// that parsing -- keep this in sync with ingestion_throughput_benchmarks.cpp.
 BENCHMARK_REGISTER_F(TickToTradeBenchmark, ProcessTick)
     ->Arg(1)
     ->Arg(8)
     ->Arg(32)
     ->Arg(128)
-    ->ArgNames({"symbols"})
     ->Unit(benchmark::kMicrosecond);
 
 BENCHMARK_MAIN();

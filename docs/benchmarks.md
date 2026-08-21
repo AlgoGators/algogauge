@@ -52,10 +52,10 @@ Tier-1 metric (see `docs/superpowers/specs/2026-08-21-tier1-benchmarking-design.
 
 | Benchmark | Description |
 |-----------|-------------|
-| `ProcessTick/symbols:1` | One new bar → executions, single-symbol universe |
-| `ProcessTick/symbols:8` | Same, 8-symbol universe |
-| `ProcessTick/symbols:32` | Same, 32-symbol universe |
-| `ProcessTick/symbols:128` | Same, 128-symbol universe |
+| `ProcessTick/1` | One new bar → executions, single-symbol universe |
+| `ProcessTick/8` | Same, 8-symbol universe |
+| `ProcessTick/32` | Same, 32-symbol universe |
+| `ProcessTick/128` | Same, 128-symbol universe |
 
 Each result also reports an `executions_per_tick` counter. If a run produces zero executions across every iteration, the benchmark fails loudly (`state.SkipWithError`) instead of reporting a misleadingly fast "0 executions in 0 time" number.
 
