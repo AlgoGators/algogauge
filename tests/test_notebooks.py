@@ -18,7 +18,11 @@ def _load_build_notebooks():
 def test_build_notebooks_roundtrip(tmp_path):
     bn = _load_build_notebooks()
     paths = bn.build(tmp_path)
-    assert [p.name for p in paths] == ["00_setup_wsl.ipynb", "01_run_all_benchmarks.ipynb"]
+    assert [p.name for p in paths] == [
+        "00_setup_wsl.ipynb",
+        "01_run_all_benchmarks.ipynb",
+        "05_dashboard.ipynb",
+    ]
     for p in paths:
         nb = nbformat.read(p, as_version=4)
         nbformat.validate(nb)
