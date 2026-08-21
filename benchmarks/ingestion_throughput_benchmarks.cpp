@@ -45,12 +45,16 @@ BENCHMARK_DEFINE_F(IngestionBenchmark, ArrowToBars)
     state.SetItemsProcessed(static_cast<int64_t>(state.iterations()) * rows);
 }
 
+// No ->ArgNames() on any registration below: algogauge/gbench.py splits a
+// benchmark name on the first "/" and expects the param half to be a bare
+// number (int(r.param) in the notebooks) -- ArgNames would produce
+// "ArrowToBars/rows:1000" instead of "ArrowToBars/1000" and break that
+// parsing. Keep in sync with tick_to_trade_benchmarks.cpp.
 BENCHMARK_REGISTER_F(IngestionBenchmark, ArrowToBars)
     ->Arg(1000)
     ->Arg(10000)
     ->Arg(100000)
     ->Arg(1000000)
-    ->ArgNames({"rows"})
     ->Unit(benchmark::kMicrosecond);
 
 // ---------------------------------------------------------------------------
@@ -104,7 +108,6 @@ BENCHMARK_REGISTER_F(IngestionBenchmark, Publish)
     ->Arg(1)
     ->Arg(4)
     ->Arg(16)
-    ->ArgNames({"subscribers"})
     ->Unit(benchmark::kNanosecond);
 
 // ---------------------------------------------------------------------------
@@ -160,7 +163,6 @@ BENCHMARK_REGISTER_F(IngestionBenchmark, PublishContended)
     ->Arg(1)
     ->Arg(4)
     ->Arg(16)
-    ->ArgNames({"threads"})
     ->Unit(benchmark::kMicrosecond)
     ->UseRealTime();
 

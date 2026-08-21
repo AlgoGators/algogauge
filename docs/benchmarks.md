@@ -47,9 +47,9 @@ Tier-1 metric (see `docs/superpowers/specs/2026-08-21-tier1-benchmarking-design.
 
 | Benchmark | Stage | Description |
 |-----------|-------|-------------|
-| `ArrowToBars/rows:1000..1000000` | A: conversion | `DataConversionUtils::arrow_table_to_bars()` over synthetic OHLCV Arrow tables of 1k/10k/100k/1M rows |
-| `Publish/subscribers:1,4,16` | B: fan-out | `MarketDataBus::publish()`, single publisher thread, varying subscriber count |
-| `PublishContended/threads:1,4,16` | C: contention | `MarketDataBus::publish()` called concurrently from N `std::thread` publishers against the mutex-guarded singleton bus, exposing lock contention as thread count rises |
+| `ArrowToBars/1000..1000000` | A: conversion | `DataConversionUtils::arrow_table_to_bars()` over synthetic OHLCV Arrow tables of 1k/10k/100k/1M rows |
+| `Publish/1,4,16` | B: fan-out | `MarketDataBus::publish()`, single publisher thread, varying subscriber count |
+| `PublishContended/1,4,16` | C: contention | `MarketDataBus::publish()` called concurrently from N `std::thread` publishers against the mutex-guarded singleton bus, exposing lock contention as thread count rises |
 
 Each `Publish`/`PublishContended` run fails loudly via `state.SkipWithError(...)` if zero events were actually delivered to subscribers, so a broken fixture can't silently report a fast "0 delivery" number.
 
