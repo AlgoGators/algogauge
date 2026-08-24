@@ -99,6 +99,67 @@ def _perf_stages(executor, binary: Path, suite: Suite, rd: Path, repo_root: Path
     )
 
 
+def parse_peak_rss_kb(time_v_stderr: str) -> int:
+    """Extract peak RSS in kbytes from /usr/bin/time -v stderr output.
+
+    Args:
+        time_v_stderr: Complete stderr output from /usr/bin/time -v
+
+    Returns:
+        Peak RSS in kilobytes as an integer
+
+    Raises:
+        ValueError: If the expected line is not found in the output
+    """
+    for line in time_v_stderr.splitlines():
+        if "Maximum resident set size (kbytes):" in line:
+            parts = line.split(":")
+            if len(parts) >= 2:
+                try:
+                    return int(parts[1].strip())
+                except ValueError as e:
+                    truncated = time_v_stderr[:500] + ("..." if len(time_v_stderr) > 500 else "")
+                    raise ValueError(
+                        f"Could not parse peak RSS value from line: {line!r}\nInput (truncated): {truncated}"
+                    ) from e
+    truncated = time_v_stderr[:500] + ("..." if len(time_v_stderr) > 500 else "")
+    raise ValueError(
+        f"Maximum resident set size line not found in /usr/bin/time -v output.\nInput (truncated): {truncated}"
+    )
+
+
+def capture_peak_rss(binary: Path, cwd: Path, executor=subprocess.run) -> int:
+    """Capture peak RSS by running binary with /usr/bin/time -v.
+
+    Runs a fast, minimal benchmark invocation to sample peak memory usage.
+    This is a one-off measurement; full timing data comes from run_suite's main gbench run.
+
+    Args:
+        binary: Path to the Google Benchmark binary
+        cwd: Working directory to run the command in
+        executor: Function to execute the command (for testing, can be mocked)
+
+    Returns:
+        Peak RSS in kilobytes as an integer
+
+    Raises:
+        subprocess.CalledProcessError: If the command fails
+        ValueError: If peak RSS cannot be parsed from output
+    """
+    cmd = [
+        "/usr/bin/time",
+        "-v",
+        str(binary),
+        "--benchmark_min_time=0.01s",
+        "--benchmark_report_aggregates_only=false",
+    ]
+    r = executor(cmd, cwd=str(cwd), check=False, capture_output=True, text=True)
+    if r.returncode != 0:
+        raise subprocess.CalledProcessError(r.returncode, cmd)
+    stderr = getattr(r, "stderr", "") or ""
+    return parse_peak_rss_kb(stderr)
+
+
 def run_suite(
     suite: Suite,
     defaults: Defaults,
@@ -138,10 +199,20 @@ def run_suite(
         except RuntimeError as e:
             print(f"WARNING: {e}\nskipping perf/flamegraph stages (timing results are unaffected)")
 
+    peak_rss_kb = None
+    if suite.kind == "gbench":
+        try:
+            binary = repo_root / suite.binary
+            peak_rss_kb = capture_peak_rss(binary, repo_root, executor)
+            (rd / "peak_rss_kb.txt").write_text(str(peak_rss_kb), encoding="utf-8")
+            print(f"Peak RSS: {peak_rss_kb} kB")
+        except Exception as e:
+            print(f"WARNING: Failed to capture peak RSS: {e}\ncontinuing without peak RSS data")
+
     stats = gbench.parse(out_json)
     ts = _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")
     records = history.from_stats(
-        run_id, suite.name, stats, machine.collect(repo_root), ts, perf_ran
+        run_id, suite.name, stats, machine.collect(repo_root), ts, perf_ran, peak_rss_kb
     )
     history.append(history_dir or repo_root / "history", records)
     print(

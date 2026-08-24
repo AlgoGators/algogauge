@@ -33,9 +33,54 @@ def test_from_stats_marks_validity():
     assert recs[0].trade_ngin_sha == "abc" and recs[0].suite == "s" and recs[0].run_id == "r1"
 
 
+def test_from_stats_with_peak_rss_kb():
+    recs = history.from_stats(
+        "r1", "s", [stat()], MACHINE, "2026-08-21T00:00:00Z", True, peak_rss_kb=87772
+    )
+    assert len(recs) == 1
+    assert recs[0].peak_rss_kb == 87772
+
+
+def test_from_stats_without_peak_rss_kb():
+    recs = history.from_stats(
+        "r1", "s", [stat()], MACHINE, "2026-08-21T00:00:00Z", True
+    )
+    assert len(recs) == 1
+    assert recs[0].peak_rss_kb is None
+
+
+def test_from_stats_peak_rss_same_for_all_records():
+    """Verify peak_rss_kb is stamped onto all records in a run."""
+    recs = history.from_stats(
+        "r1", "s", [stat(), stat("B"), stat("C")], MACHINE, "2026-08-21T00:00:00Z", True, peak_rss_kb=65536
+    )
+    assert len(recs) == 3
+    assert all(r.peak_rss_kb == 65536 for r in recs)
+
+
 def test_round_trip_json():
     r = history.from_stats("r1", "s", [stat()], MACHINE, "t", False)[0]
     assert history.Record.from_json(r.to_json()) == r
+
+
+def test_round_trip_json_with_peak_rss_kb():
+    r = history.from_stats("r1", "s", [stat()], MACHINE, "t", False, peak_rss_kb=87772)[0]
+    assert history.Record.from_json(r.to_json()) == r
+
+
+def test_round_trip_json_old_format_without_peak_rss_kb():
+    """Test that old JSON records without peak_rss_kb field still parse correctly."""
+    r = history.from_stats("r1", "s", [stat()], MACHINE, "t", False)[0]
+    json_str = r.to_json()
+    # Remove peak_rss_kb from JSON to simulate old format
+    import json
+    data = json.loads(json_str)
+    del data["peak_rss_kb"]
+    old_format_json = json.dumps(data)
+    
+    # Should still parse correctly with peak_rss_kb defaulting to None
+    loaded = history.Record.from_json(old_format_json)
+    assert loaded.peak_rss_kb is None
 
 
 def test_append_and_load(tmp_path: Path):
@@ -49,6 +94,17 @@ def test_append_and_load(tmp_path: Path):
     assert [r.run_id for r in loaded] == ["r1", "r1", "r2"]
     assert history.load(tmp_path, "missing") == []
     assert set(history.load_all(tmp_path)) == {"s"}
+
+
+def test_append_and_load_with_peak_rss_kb(tmp_path: Path):
+    """Test append and load with peak_rss_kb field."""
+    recs = history.from_stats(
+        "r1", "s", [stat(), stat("B")], MACHINE, "2026-01-01T00:00:00Z", True, peak_rss_kb=87772
+    )
+    p = history.append(tmp_path, recs)
+    assert p == tmp_path / "s.jsonl" and p.read_text().count("\n") == 2
+    loaded = history.load(tmp_path, "s")
+    assert [r.peak_rss_kb for r in loaded] == [87772, 87772]
 
 
 def test_latest_run_prefers_valid():
