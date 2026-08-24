@@ -35,6 +35,7 @@ class Record:
     algogauge_sha: str
     ts: str
     perf: bool = field(default=False)
+    peak_rss_kb: int | None = field(default=None)
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), sort_keys=True)
@@ -45,7 +46,7 @@ class Record:
 
 
 def from_stats(
-    run_id: str, suite: str, stats: list[BenchStat], machine: dict, ts: str, perf: bool
+    run_id: str, suite: str, stats: list[BenchStat], machine: dict, ts: str, perf: bool, peak_rss_kb: int | None = None
 ) -> list[Record]:
     out = []
     for s in stats:
@@ -74,6 +75,7 @@ def from_stats(
                 algogauge_sha=str(machine.get("algogauge_sha", "unknown")),
                 ts=ts,
                 perf=perf,
+                peak_rss_kb=peak_rss_kb,
             )
         )
     return out
