@@ -1,16 +1,40 @@
 # Configuration
 
+## `algogauge.toml` manifest
+
+Every benchmark suite is declared once in `algogauge.toml` at the repo root. The `algogauge` CLI, the runner, and the notebooks all read this file — nothing about a suite is hard-coded elsewhere.
+
+```toml
+[defaults]
+repetitions = 20              # int: Google Benchmark repetitions per case
+min_time = "2s"                # str: Google Benchmark --benchmark_min_time
+perf = true                    # bool: run perf + flamegraph stages when possible
+regression_threshold_pct = 10  # float: default `algogauge compare` threshold
+
+[[benchmark]]
+name   = "tick_to_trade"       # str, required, unique: suite id used everywhere (history file, CLI, dashboard)
+kind   = "gbench"              # "gbench" | "script", required
+binary = "build/benchmarks/tick_to_trade_benchmarks"   # required when kind = "gbench"
+# script = "python/algogauge/backtest_parallel.py"     # required when kind = "script"
+# args   = ["--symbols", "50"]                          # optional: extra argv passed to a script suite
+# repetitions / min_time / perf                         # optional: override the suite's own defaults above
+```
+
+Any key omitted on a `[[benchmark]]` entry falls back to `[defaults]`. `kind = "gbench"` suites are Google Benchmark binaries invoked with the flags below; `kind = "script"` suites are any Python script that writes Google-Benchmark-shaped JSON to the `--out` path it's given (see `docs/pipeline.md`).
+
 ## Pipeline flags
 
-The pipeline script hard-codes the following Google Benchmark flags. Edit `python/benchmark_pipeline.py` to adjust them:
+`algogauge run` (via `python/algogauge/runner.py`) invokes `kind = "gbench"` binaries with:
 
-| Flag | Default | Description |
+| Flag | Value | Description |
 |------|---------|-------------|
-| `--benchmark_repetitions` | `30` | Number of repetitions per benchmark case |
-| `--benchmark_min_time` | `5s` | Minimum wall-clock time per repetition |
-| `--benchmark_report_aggregates_only` | `true` | Only emit mean/stddev/cv aggregates, not raw per-rep timings |
+| `--benchmark_repetitions` | from manifest (`repetitions`) | Number of repetitions per benchmark case |
+| `--benchmark_min_time` | from manifest (`min_time`) | Minimum wall-clock time per repetition |
+| `--benchmark_display_aggregates_only` | `true` | Keep per-repetition timings in the JSON (needed to compute real median/p95/p99) while still hiding them from the console summary |
 
-The `perf record` sampling frequency is also hard-coded to `-F 999` (999 Hz). Higher values increase profiling overhead; lower values reduce flamegraph resolution.
+Note this differs from the old `benchmark_pipeline.py`, which used `--benchmark_report_aggregates_only=true` and discarded per-repetition data — that flag suppressed the raw timings the new percentile calculation needs, so the runner no longer uses it.
+
+The `perf record` sampling frequency is also hard-coded to `-F 999` (999 Hz). Higher values increase profiling overhead; lower values reduce flamegraph resolution. If `perf_event_paranoid`/`kptr_restrict` aren't set correctly, the runner now **warns and skips** the perf/flamegraph stages instead of aborting — timing results are unaffected either way. Pass `--skip-perf` to skip them unconditionally.
 
 ## Benchmark input sizes
 

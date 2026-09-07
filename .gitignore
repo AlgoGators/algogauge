@@ -45,3 +45,7 @@ build/
 results/
 
 compile_commands.json
+
+.ipynb_checkpoints/
+.pytest_cache/
+__pycache__/
